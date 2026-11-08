@@ -1,0 +1,17 @@
+name: astrbot_plugin_runtime_info
+display_name: 运行信息 · 真实读数
+short_desc: 让 AI 按需查到当前真实模型、token 用量与缓存命中率，并带 miuix 风格仪表盘。
+desc: 提供按需调用的 llm_tool `get_runtime_info`：当 AI 被问到「你用的什么模型 / 跑的哪个」时，自动查询并返回当前真实型号、累计 token 用量、真实缓存命中率，不再凭印象乱编。附带 miuix 风格 Web 仪表盘（当前型号 + 最近一次命中率圆环、Token 四格、命中率滑块、按模型 / 会话排行、每日堆叠柱状图、最近请求）。只读 cost_control 的 supplement.db 与主库 provider_stats，不注入 system_prompt，不破坏提示词缓存前缀稳定性。
+author: Gpan666
+version: 1.0.0
+repo: https://github.com/Gpan666/astrbot_plugin_runtime_info
+astrbot_version: ">=4.17.0"
+support_platforms:
+  - aiocqhttp
+social_link: https://github.com/Gpan666
+tags:
+  - 运行信息
+  - token
+  - 缓存命中
+  - 模型
+  - 监控

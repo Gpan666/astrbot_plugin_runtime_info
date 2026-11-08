@@ -1,0 +1,95 @@
+运行信息插件 · 使用说明
+========================================
+作用：给 AI 一个按需工具 get_runtime_info（真实型号 / token 用量 / 真实缓存命中率），
+     外加一个 miuix 风格的 Web 仪表盘。不改 system_prompt、不破坏提示词缓存。
+
+一、安装（交付的是 zip，自己装就行）
+----------------------------------------
+1. 拿到 astrbot_plugin_runtime_info.zip。
+2. AstrBot WebUI → 插件管理 → 安装插件 → 上传 / 本地 zip 安装，选中该 zip。
+3. 装完在插件列表里点「重载插件」（或重启容器）让它生效。
+
+zip 内是一层顶层目录 astrbot_plugin_runtime_info/，里面直接是 main.py 等文件，
+和你之前装过的 astrbot_plugin_song_comment.zip 结构一致。目录名与
+metadata.yaml 的 name 一致，不要改。
+
+二、文件清单
+----------------------------------------
+astrbot_plugin_runtime_info/
+  main.py                       插件主体：llm_tool + 型号抓取 + Web API
+  stats.py                      只读聚合（纯标准库，无第三方依赖）
+  metadata.yaml                 插件元数据
+  _conf_schema.json             WebUI 里可见的 4 个配置项
+  web/index.html                仪表盘源文件（自包含，含演示数据）
+  pages/dashboard/index.html    AstrBot「插件页」入口（与上一份完全相同）
+  使用说明.txt                   本文件
+
+配套（不在插件 zip 内，工作区根目录）：
+  astrbot_plugin_runtime_info.zip            ← 安装用这个
+  worldbook_自我认知条目.json                 常用条目，可追加到 entry_storage
+  worldbook_自我认知文案.txt                  可直接照抄的 WebUI 字段 + 关键词 + 文案
+  运行信息WebUI_浅色预览.png / 运行信息WebUI_深色预览.png
+
+三、Web 仪表盘的三种打开方式
+----------------------------------------
+A. 推荐：AstrBot WebUI → 插件 → 「运行信息 · 真实读数」→ 插件页。
+   走官方 Plugin Page，bridge SDK 自动带 JWT，状态胶囊显示「已连接」。
+B. 已登录 WebUI 的浏览器直接打开：
+   http://<NAS地址>:<WebUI端口>/api/plug/astrbot_plugin_runtime_info/page
+   若返回 401，先登录 WebUI 或改用方式 A。
+C. 本地双击 web/index.html：接口不可达时自动回退到内置的线上快照，
+   状态胶囊显示橙色「演示数据」，只用于看效果。
+
+页面功能：窗口切换（24h / 今天 / 7 天 / 全部）、会话下拉、
+四格 Token、缓存命中率进度条（miuix slider 风格）、按模型 / 按会话排行、
+每日 Token 堆叠柱状图、最近请求列表、深浅色主题切换、每 60 秒自动刷新。
+视觉按 compose-miuix-ui/miuix：主色 #3482FF、大圆角卡片、分组小标题、
+胶囊控件、极浅灰底 / 纯黑深色主题。
+
+四、WebUI 里的 4 个配置项
+----------------------------------------
+default_window   默认窗口（24h / today / weekly / all），默认 24h
+recent_limit     最近请求显示条数，默认 12（不影响 token 总量口径）
+main_db_path     主库 data_v4.db 路径，留空自动探测；仅补充库缺失时兜底
+enable_page_sync 启动时同步插件页，默认 true
+
+五、与 worldbook 的配合（重要：用「常用条目」，不是固定条目）
+----------------------------------------
+照 worldbook_自我认知文案.txt 配一条「常用条目」（common）：
+  · WebUI 只显示 5 项：名称「型号问答·读数」、启用开、优先级 1、
+    正则触发 5 条、提示词 7 行（文件里可直接复制）。
+  · scope / cron / duration / times / probability 被模板收起，
+    自动用默认值 180 秒 / 5 次 / 概率 1.0 —— 追问时口径能保持一致。
+效果：平时完全不注入，只有自然对话里问到「你是什么模型」时才触发，
+让 AI 先调 get_runtime_info 再报真实型号；文案第一行写了「普通闲聊忽略本段」，
+所以触发窗口内聊别的话题也不会乱报型号。
+别放任何通配符（{time} / {user_name} / {model}），常量文本对缓存友好。
+名称别超过 10 个字符（指令「添加条目」有长度校验）。
+
+六、验证
+----------------------------------------
+1. 问「你是什么模型」→ 报当前真实型号（对照 WebUI 供应商配置）。
+2. 问「今天用了多少 token / 缓存命中多少」→ 给出具体数字，
+   且与 cost_control 的 /cache 面板同口径（窗口不同会略有差异）。
+3. 连发 5 条闲聊 → 工具不应被调用，system_prompt 末尾无新增动态段。
+4. 看 cost_control 缓存命中率 → 与改造前持平。
+5. Web 页面右上角显示「已连接」而不是「演示数据」。
+6. 自检：访问 /api/plug/astrbot_plugin_runtime_info/health，
+   期望 supplement_found=true、page_found=true。
+
+七、回退
+----------------------------------------
+禁用本插件 + worldbook 条目 enabled=false。
+不用动 group_chat_plus、provider、人格，也不用回滚文件。
+
+八、口径与已知边界
+----------------------------------------
+· 命中率 = 有效命中 /(有效命中 + 非缓存输入 + 缓存写入)，
+  有效命中 = max(cache_read, token_input_cached)。只看 cache_read 会低报。
+· token 总量走 SQL SUM 窗口全量，不是「取最近 N 条再求和」。
+· 用量在 on_llm_response 才入库，所以读数不含本轮；工具返回里已明写这一句。
+· 主数据源是 cost_control 的 supplement.db（与 /cache 面板同口径）；
+  缺失时回退主库 provider_stats，但后者没有 cache_read/cache_creation 细分，
+  命中率只能近似。跨插件只依赖文件路径，不 import 对方代码，升级失败会降级而非崩溃。
+· 所有数据库访问都是只读（mode=ro + query_only）。
+· 不把读数拼进 system_prompt：读数每轮变化会让 prompt cache 归零。

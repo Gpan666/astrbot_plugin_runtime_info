@@ -1,0 +1,27 @@
+{
+  "default_window": {
+    "description": "默认统计窗口",
+    "hint": "工具与 Web 页面未指定时使用。24h=近 24 小时，today=北京时间今天，weekly=近 7 天，all=全部历史。",
+    "type": "string",
+    "options": ["24h", "today", "weekly", "all"],
+    "default": "24h"
+  },
+  "recent_limit": {
+    "description": "Web 页面「最近请求」显示条数",
+    "hint": "仅影响展示，不影响 token 总量（总量始终走 SQL SUM 窗口全量）。",
+    "type": "int",
+    "default": 12
+  },
+  "main_db_path": {
+    "description": "AstrBot 主库 data_v4.db 绝对路径（可选）",
+    "hint": "留空会自动探测。仅在 cost_control 补充库不存在时作为兜底数据源使用（无 cache_read/cache_creation 细分）。",
+    "type": "string",
+    "default": ""
+  },
+  "enable_page_sync": {
+    "description": "启动时同步 Plugin Page",
+    "hint": "把 web/index.html 复制到 pages/dashboard/index.html，保证「插件页」和「独立访问」是同一份页面。关闭后需自己维护两份。",
+    "type": "bool",
+    "default": true
+  }
+}

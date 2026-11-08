@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local test artifacts
+_test_*.py
+*.log
+
+# Distributed zip (marketplace packages from source; keep repo clean)
+*.zip
